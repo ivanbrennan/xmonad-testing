@@ -5,6 +5,15 @@ This repository is useful for testing new features introduced into
 new/existing configurations.  It is also an example of how to build
 your own XMonad using [stack][] or [cabal][].
 
+## Zipper Demo
+
+```
+git clone --recursive git@github.com:ivanbrennan/xmonad-testing.git --branch=zipper
+cd xmonad-testing
+nix-shell
+make repl
+```
+
 ## XMonad and Custom Build Scripts
 
 Starting with XMonad 0.13 you can customize how your configuration
