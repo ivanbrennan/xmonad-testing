@@ -4,9 +4,11 @@ let
     sha256 = "1fcrpfj98khlaxygy2vz2lm94xyir29rvv9pw2i7xdb7xymvrwar";
   }) { };
 
+  ghci = pkgs.haskell.packages.ghc861.ghcWithPackages (ps: [ps.pretty-simple]);
+
 in with pkgs; mkShell {
   buildInputs = [
-    pkgs.haskell.compiler.ghc861
+    ghci
     cabal-install
 
     xorg.libX11
@@ -26,5 +28,17 @@ in with pkgs; mkShell {
     rm -rf .ghc.environment.*
     # Generate the configure script in X11:
     ( test -d x11 && cd x11 && autoreconf -f )
+
+    cabal() {
+        local extra_lib_dirs
+        if [[ "$1" =~ ^(new|v2)-repl$ ]]
+        then
+            extra_lib_dirs=$(tr <<< "$NIX_LDFLAGS" ' ' '\n' | sed 's|-L|--extra-lib-dirs=|;t;d')
+            command cabal $1 "''${@:2}" $extra_lib_dirs
+        else
+            command cabal "''${@:1}"
+        fi
+    }
+    export -f cabal
   '';
 }

@@ -1,0 +1,4 @@
+:set -Wall -Wincomplete-uni-patterns -Wno-missing-import-lists
+:set prompt "\ESC[0;37m%s\n(%l)\ESC[0;96m\STX• \ESC[m\STX"
+:set prompt-cont "(%l)\ESC[0;96m| \ESC[m\STX"
+:set -fno-warn-type-defaults

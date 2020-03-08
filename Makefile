@@ -8,6 +8,10 @@ build:
 run: build
 	bin/run-in-xephyr.sh
 
+.PHONY: repl
+repl:
+	bin/run-in-xephyr-repl.sh
+
 .PHONY: clean
 clean:
 	rm -f  $(PROJECT_ROOT)/.ghc.environment.*

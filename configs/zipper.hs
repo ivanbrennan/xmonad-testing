@@ -1,16 +1,20 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
 import XMonad
-    (IncMasterN(IncMasterN), Layout, X, XConfig(XConfig), borderWidth, clickJustFocuses, def, focusedBorderColor, io, keys,
-     kill, layoutHook, manageHook, modMask, normalBorderColor, sendMessage, spawn, terminal, windows, workspaces, xmonad
+    (IncMasterN(IncMasterN), Layout, Tall(Tall), X, XConfig(XConfig), borderWidth, clickJustFocuses, def,
+     focusedBorderColor, io, keys, kill, layoutHook, manageHook, modMask, normalBorderColor, sendMessage,
+     spawn, terminal, windows, withFocused, workspaces, xmonad
     )
 import XMonad.Actions.CycleWS (Direction1D(Next, Prev), WSType(NonEmptyWS), moveTo)
-import XMonad.Hooks.DynamicLog (statusBar, xmobarColor, xmobarPP, ppCurrent, ppHidden, ppLayout, ppTitle, ppWsSep, wrap)
+import XMonad.Hooks.DynamicLog
+    (statusBar, xmobarColor, xmobarPP, ppCurrent, ppHidden, ppLayout, ppTitle, ppWsSep, wrap
+    )
 import XMonad.Hooks.ManageDocks (avoidStruts, manageDocks)
 import XMonad.StackSet (focusDown, focusUp, focusMaster, shift, swapDown, swapUp, greedyView)
+import XMonad.Util.Paste (pasteString)
 import Graphics.X11
-    (KeyMask, KeySym, mod4Mask, noModMask, shiftMask, xK_1, xK_2, xK_b, xK_d, xK_j, xK_k, xK_m, xK_o, xK_x, xK_comma,
-     xK_period, xK_Return
+    (KeyMask, KeySym, mod4Mask, noModMask, shiftMask, xK_1, xK_2, xK_b, xK_d, xK_j, xK_k, xK_m,
+     xK_o, xK_p, xK_x, xK_comma, xK_period, xK_Return
     )
 import Data.Bits ((.|.))
 import System.Exit (exitSuccess)
@@ -37,11 +41,13 @@ keys' conf@(XConfig {modMask}) = M.fromList $
     , ((modMask .|. shiftMask, xK_comma ), sendMessage (IncMasterN 1))
     , ((modMask .|. shiftMask, xK_period), sendMessage (IncMasterN (-1)))
 
+    , ((modMask,               xK_p     ), withFocused (pasteString . show))
+
     -- quit
     , ((modMask .|. shiftMask, xK_x     ), io exitSuccess)
 
     -- launch/kill
-    , ((modMask .|. shiftMask, xK_o     ), spawn "alacritty --command env PS1='$ ' bash --norc")
+    , ((modMask,               xK_o     ), spawn "$(grep -oP '^exec \"\\K[^\"]+' $(readlink -f $(which alacritty))) --config-file /home/ivan/Development/code/xmonad-testing/configs/alacritty.yml --command env PS1='$ ' bash --norc")
     , ((modMask,               xK_Return), spawn "dmenu_run -fn monospace:size=12 -l 16 -i -nb '#1c1c1c' -nf '#a5adb7' -sb '#1f1f1f' -sf '#c8f5ff'")
     , ((modMask .|. shiftMask, xK_d     ), kill)
     ]
@@ -59,7 +65,7 @@ main =
     xmonad =<< statusBar "xmobar" barPP toggleStrutsKey config
   where
     config = def
-        { layoutHook         = avoidStruts (layoutHook def)
+        { layoutHook         = avoidStruts $ Tall 1 (3/100) (1/2)
         , manageHook         = manageDocks
         , modMask            = mod4Mask
         , terminal           = "alacritty"
@@ -68,6 +74,7 @@ main =
         , focusedBorderColor = "#506068"
         , borderWidth        = 2
         , keys               = keys'
+        , workspaces         = ["1", "2"]
         }
 
     barPP = xmobarPP
