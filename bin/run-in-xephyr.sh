@@ -51,7 +51,7 @@ if [ -d .stack-work ]; then
   BIN_PATH=$(stack path $options --dist-dir)/build/xmonad-testing
 elif [ -d dist-newstyle ]; then
   echo "cabal build detected"
-  BIN_PATH=$(find dist-newstyle/ -type f -executable -name xmonad-testing -printf '%h')
+  BIN_PATH=$(find "$PWD/dist-newstyle/" -type f -executable -name xmonad-testing -printf '%h')
 else
   echo "you need to build xmonad-testing first, see README for instructions"
   exit 1
@@ -64,10 +64,11 @@ ARCH_BIN=$BIN_PATH/xmonad-$ARCH-$OS
 cp -p "$RAW_BIN" "$ARCH_BIN"
 
 ################################################################################
+XMOBAR_CONFIG_DIR=$(pwd)/xmobar-config \
 XMONAD_CONFIG_DIR=$(pwd)/state/config
 XMONAD_CACHE_DIR=$(pwd)/state/cache
 XMONAD_DATA_DIR=$(pwd)/state/data
-export XMONAD_CONFIG_DIR XMONAD_CACHE_DIR XMONAD_DATA_DIR
+export XMOBAR_CONFIG_DIR XMONAD_CONFIG_DIR XMONAD_CACHE_DIR XMONAD_DATA_DIR
 
 mkdir -p "$XMONAD_CONFIG_DIR" "$XMONAD_CACHE_DIR" "$XMONAD_DATA_DIR"
 echo "xmonad will store state files in $(pwd)/state"
@@ -85,15 +86,15 @@ while expr "$SCREEN_COUNTER" "<" "$SCREENS"; do
 done
 
 (
+  cd
   # shellcheck disable=SC2086
   Xephyr $SCREEN_OPTS +xinerama +extension RANDR \
          -ac -br -reset -terminate -verbosity 10 \
+         -fp $(xset q | grep -F 'Font Path:' -A 1 | tail -1) \
          -softCursor ":$DISPLAY_NUMBER" &
 
   export DISPLAY=":$DISPLAY_NUMBER"
-  echo "Waiting for windows to appear..." && sleep 2
+  sleep 1
 
-  xterm -hold xrandr &
-  xterm &
   $ARCH_BIN
 )
