@@ -1,1 +1,1 @@
-xmonad-contrib/XMonad/Config/Example.hs
+configs/boring-swaps.hs
