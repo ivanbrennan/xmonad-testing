@@ -88,12 +88,12 @@ done
   # shellcheck disable=SC2086
   Xephyr $SCREEN_OPTS +xinerama +extension RANDR \
          -ac -br -reset -terminate -verbosity 10 \
+         -fp $(xset q | grep -F 'Font Path:' -A 1 | tail -1) \
          -softCursor ":$DISPLAY_NUMBER" &
 
   export DISPLAY=":$DISPLAY_NUMBER"
   echo "Waiting for windows to appear..." && sleep 2
 
-  xterm -hold xrandr &
   xterm &
   $ARCH_BIN
 )
