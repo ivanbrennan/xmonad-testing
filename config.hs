@@ -1,1 +1,1 @@
-xmonad-contrib/XMonad/Config/Example.hs
+configs/rotate-some.hs
