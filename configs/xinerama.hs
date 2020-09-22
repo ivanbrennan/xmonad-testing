@@ -1,4 +1,5 @@
 import Control.Monad ((>=>))
+import Data.List (intercalate)
 import qualified Data.Map as M
 import XMonad
 import XMonad.Actions.CycleWS (Direction1D (Next, Prev), WSType (WSIs), moveTo)
@@ -13,7 +14,44 @@ import XMonad.Util.Run (spawnPipe)
 
 startupHook' = dynStatusBarStartup xmobar' (pure ())
 
-xmobar' (S sid) = spawnPipe (unwords ["xmobar", "-x", show sid])
+xmobar' s@(S i) = spawnPipe $
+  unwords
+    [ "xmobar",
+      "-f", "xft:monospace:size=11",
+      "-N", "xft:FontAwesome:size=11",
+      "-x", show i,
+      "-t", quote' (xmobarTemplate s),
+      "-c", quote' $ list (xmobarCommands s)
+    ]
+
+xmobarTemplate (S 0) = "%StdinReader% }{ %alsa:default:Master% "
+xmobarTemplate (S _) = "%StdinReader% }{ "
+
+xmobarCommands (S i) = map unwords $
+  if i == 0
+    then [stdinReader, volume]
+    else [stdinReader]
+  where
+    stdinReader = ["Run StdinReader"]
+
+    volume =
+      ["Run Alsa", quote "default", quote "Master", list (map quote volumeArgs)]
+
+    volumeArgs =
+      [ "--template", "<status>",
+        "--",
+        "--on" , "<fn=1>\xf026</fn><volume>",
+        "--off", "<fn=1>\xf026</fn><volume>"
+      ]
+
+list :: [String] -> String
+list xs = "[" ++ intercalate "," xs ++ "]"
+
+quote :: String -> String
+quote = wrap "\"" "\""
+
+quote' :: String -> String
+quote' = wrap "'" "'"
 
 logHook' = multiPP' barPP barPP
   where
