@@ -1,18 +1,72 @@
+{-# OPTIONS_GHC -Wwarn #-}
+
 import Control.Monad ((>=>))
-import Data.List (intercalate)
+import Data.List (find, intercalate)
+import Data.Map (Map)
 import qualified Data.Map as M
 import XMonad
 import XMonad.Actions.CycleWS (Direction1D (Next, Prev), WSType (WSIs), moveTo)
 import XMonad.Actions.WorkspaceNames (renameWorkspace, workspaceNamesPP)
 import XMonad.Hooks.DynamicBars (dynStatusBarEventHook, dynStatusBarStartup, multiPPFormat)
-import XMonad.Hooks.DynamicLog (dynamicLogString, ppCurrent, ppHidden, ppLayout, ppSep, ppTitle, ppWsSep, wrap, xmobarColor, xmobarPP)
+import XMonad.Hooks.DynamicLog (PP, dynamicLogString, ppCurrent, ppHidden, ppLayout, ppSep, ppSort, ppTitle, ppWsSep, wrap, xmobarColor, xmobarPP)
 import XMonad.Hooks.ManageDocks (avoidStruts, docks)
-import XMonad.Layout.IndependentScreens (marshallPP, onCurrentScreen, unmarshallS, withScreens, workspaces')
+import XMonad.Layout.IndependentScreens (marshallPP, onCurrentScreen, unmarshallS, unmarshallW, withScreens, workspaces')
 import qualified XMonad.StackSet as W
 import XMonad.Util.NamedScratchpad (namedScratchpadFilterOutWorkspace)
 import XMonad.Util.Run (spawnPipe)
 
-startupHook' = dynStatusBarStartup xmobar' (pure ())
+import Data.Unique (Unique, newUnique)
+import qualified XMonad.Util.ExtensibleState as XS
+
+newtype ScopeUID = ScopeUID { unScopeUID :: Unique } deriving (Eq, Ord)
+newtype ScopeTag = ScopeTag { unScopeTag :: (ScopeUID, String) } deriving (Eq, Ord)
+
+newtype ScopeHist = ScopeHist { unScopeHist :: Map ScreenId ScopeUID }
+
+data ScopeState = ScopeState
+  { scopes     :: !(Map ScopeTag (Maybe ScreenId, WorkspaceId)),
+    scopeHist  :: !(Map ScreenId ScopeUID),
+    scopeSpace :: !(Map WorkspaceId ScopeUID)
+  }
+
+scopePP :: (WorkspaceId -> WorkspaceId) -> ScreenId -> PP -> X PP
+scopePP tr s pp = do
+  scopeState <- XS.get
+  pure $
+    pp {ppSort = scopeSort tr s scopeState <$> ppSort pp}
+
+scopeSort ::
+  (WorkspaceId -> WorkspaceId) ->
+  ScreenId ->
+  ScopeState ->
+  ([WindowSpace] -> [WindowSpace]) ->
+  ([WindowSpace] -> [WindowSpace])
+scopeSort tr s ss sort =
+  sort . filter onScreen
+  where
+    mscope :: Maybe ScopeTag
+    mscope = fmap fst . find ((== Just s) . fst . snd) $ M.toList (scopes ss)
+
+    onScreen :: WindowSpace -> Bool
+    onScreen ws = M.lookup (tr $ W.tag ws) (scopeSpace ss) == (Just . fst . unScopeTag =<< mscope)
+
+instance ExtensionClass ScopeState where
+  initialValue = ScopeState mempty mempty mempty
+
+startupHook' = do
+  dynStatusBarStartup xmobar' (pure ())
+  uid <- fmap ScopeUID (io newUnique)
+  let tag = ScopeTag (uid, "test")
+  XS.put $ ScopeState
+    { scopes = M.fromList
+        [ (tag, (Just 0, "1"))
+        ],
+      scopeHist = mempty,
+      scopeSpace = M.fromList
+        [ ("1", fst $ unScopeTag tag),
+          ("3", fst $ unScopeTag tag)
+        ]
+    }
 
 xmobar' s@(S i) = spawnPipe $
   unwords
@@ -57,8 +111,9 @@ logHook' = multiPP' barPP barPP
   where
     multiPP' = multiPPFormat (withCurrentScreen . logString)
 
-    logString pp =
-      (workspaceNamesPP >=> dynamicLogString) . flip marshallPP pp
+    logString :: PP -> ScreenId -> X String
+    logString pp s =
+      (scopePP unmarshallW s >=> workspaceNamesPP >=> dynamicLogString) $ marshallPP s pp
 
     barPP =
       xmobarPP

@@ -1,1 +1,1 @@
-configs/xinerama.hs
+configs/scopes.hs
