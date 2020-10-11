@@ -1,6 +1,7 @@
 import XMonad
 import XMonad.Hooks.DynamicLog (statusBar', xmobarPP)
 import XMonad.Hooks.EwmhDesktops (ewmh)
+import XMonad.Util.ClickableWorkspaces (clickablePP)
 import qualified XMonad.StackSet as W
 import qualified Data.Map as M
 
@@ -15,7 +16,7 @@ main = do
           "-c", "'[Run UnsafeStdinReader]'"
         ]
 
-    pp = pure xmobarPP
+    pp = clickablePP xmobarPP
 
     toggleKey = const (mod4Mask, xK_b)
 
